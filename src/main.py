@@ -1,36 +1,49 @@
 import torch
 from ultralytics import YOLO
+from roboflow import Roboflow
+import cv2
 
-def create_model():
-    # Create a new YOLO model from scratch
-    model = YOLO("yolov8n.yaml")
-
+def load_model():
     # Load a pretrained YOLO model (recommended for training)
-    model = YOLO("yolov8n.pt")
+    model = YOLO("C:\\Users\\gomes\\Documents\\yolo\\real-time-object-detector\\src\\yolov8n.pt")
     model.to('cuda')
 
     return model
 
 def train_model(model):
-    # Train the model using the 'coco8.yaml' dataset for 3 epochs
-    results = model.train(data="coco8.yaml", epochs=1, batch=4, imgsz=640) 
+    results = model.train(data="./data.yaml", epochs=9000, batch=0.80, imgsz=640, save_period=100, augment=True, patience=0)
+    model.save('yolov8n.pt')
+
     return model, results
 
 def validate_model(model, results):
-    # Evaluate the model's performance on the validation set
     results = model.val()
+
     return model, results
 
 def detection(model, results):
-    # Perform object detection on an image using the model
-    results = model("animals.mp4", show=True, save=True)
+    results = model("C:\\Users\\gomes\\Documents\\yolo\\real-time-object-detector\\images", show=True, save=True)
+
     return model, results
 
+def detection_only(model):
+    results = model("C:\\Users\\gomes\\Documents\\yolo\\real-time-object-detector\\images")
+    cont = 0
+    for result in results:
+        boxes = result.boxes  
+        masks = result.masks  
+        keypoints = result.keypoints  
+        probs = result.probs  
+        obb = result.obb  
+        # result.show()  
+        result.save(filename="C:\\Users\\gomes\\Documents\\yolo\\real-time-object-detector\\result_images\\"+str(cont)+"_result.jpg")  # save to disk
+        cont = cont + 1
+
+    return results
     
-def success(model):
-    # Export the model to ONNX format
-    success = model.export(format="onnx")
-    return success
+# def success(model):
+#     success = model.export(format="onnx")
+#     return success
 
 def clear_cache():
     torch.cuda.empty_cache()
@@ -39,21 +52,20 @@ def clear_cache():
 
 def main():
     clear_cache()
-    model = create_model()
-
-    clear_cache()
-    model, results = train_model(model)
-
-    clear_cache()
-    model, results = validate_model(model, results)
-
-    clear_cache()
-    model, results = detection(model, results)
+    model = load_model()
 
     # clear_cache()
-    # s = success(model)
-    
-    
+    # model, results = train_model(model)
+
+    # clear_cache()
+    # model, results = validate_model(model, results)
+
+    # clear_cache()
+    # model, results = detection(model, results)
+
+    clear_cache()
+    _ = detection_only(model)
+
 
 if __name__ == '__main__':
     main()
